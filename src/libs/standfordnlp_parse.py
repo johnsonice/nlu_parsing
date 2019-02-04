@@ -85,7 +85,7 @@ class stanford_analyzer(object):
 if __name__ == "__main__":
     
     ## load model 
-    models_dir = './zh'
+    models_dir = '../models/stanfordnlp_resources'
     lang = 'zh'
     analyzer = stanford_analyzer(models_dir,lang)    
     
