@@ -9,23 +9,23 @@ import pandas as pd
 
 import sys 
 sys.path.insert(0,'./libs')
-import stanfordnlp
+#import stanfordnlp
 from standfordnlp_parse import stanford_analyzer
 from hanlp_parse import han_analyzer
 
 #%%
-def get_dep_output(sentence,analyzer):
+def get_dep_output(sentence,stand_analyzer):
     try:
-        parse_res = analyzer.parse(sentence)[0]
+        parse_res = stand_analyzer.parse(sentence)[0]
         res = [(i.lemma,i.governor,i.upos,i.dependency_relation)for i in parse_res['tokens']]
     except:
         print(sentence)
         res = None
     return res
 
-def get_dep_output_han(sentence,analyser):
+def get_dep_output_han(sentence,han_analyser):
     try:
-        word_dict, word_objs = analyzer.dep_parse(sentence,False)  
+        word_dict, word_objs = han_analyser.dep_parse(sentence,False)  
         res = [(w['LEMMA'],w['POSTAG'],w['DEPREL'],w['HEAD_LEMMA']) for w in word_dict]
     except:
         print(sentence)
@@ -46,13 +46,15 @@ if __name__ == '__main__':
 
     #%%
     ## use stanford parser 
+    print('parsing using stanford analyzer....')
     models_dir = '../models/stanfordnlp_resources'
     lang = 'zh'
-    analyzer = stanford_analyzer(models_dir,lang)    
-    df['stanford_dep'] = df[input_column_name].apply(get_dep_output,args=(analyzer,))
+    stand_analyzer = stanford_analyzer(models_dir,lang)    
+    df['stanford_dep'] = df[input_column_name].apply(get_dep_output,args=(stand_analyzer,))
     
     #%%
     # use hanlp parser
+    print('parsing using han analyzer')
     han_analyzer = han_analyzer()
     df['han_dep'] = df[input_column_name].apply(get_dep_output_han,args=(han_analyzer,))
     
@@ -60,5 +62,5 @@ if __name__ == '__main__':
     #%%
     # export results 
     res_path = '../data/results/dep_res.csv'
-    df.to_csv(res_path)
+    df.to_csv(res_path,encoding='utf8')
     
