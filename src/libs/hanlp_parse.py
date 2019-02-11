@@ -60,7 +60,24 @@ class han_analyzer(object):
         for w in word_objs:
             if w.HEAD == self.CoNLLWord.ROOT:
                 return self._w2d(w),w
-        return None
+        return None,None
+    
+    def filter_by_dep_ele(self,word_objs,dep_ele=['主谓关系'],mode='keep',verbose=True):
+        if mode == 'keep':
+            res = [i for i in word_objs if i.DEPREL in dep_ele]
+        elif mode == 'drop':
+            res = [i for i in word_objs if not i.DEPREL in dep_ele]
+        else:
+            raise Exception('mode must be keep or drop')
+            
+        if len(res)==0:
+            if verbose:
+                print('No results found')
+            return None,None
+        else:
+            word_dict = [self._w2d(w) for w in res]
+            return word_dict,res 
+        
         
     def find_children(self,word_objs,parent_obj):
         """
@@ -76,7 +93,8 @@ class han_analyzer(object):
 
             return children_dict,children
         else:
-            raise Exception('parent object not in sentance: {}'.format(parent_obj.LEMMA))
+            return None, None 
+            print('No child found.for: {}'.format(parent_obj.LEMMA))
             
     def find_path_to_root(self,word_obj,nice_print=False):
         """
