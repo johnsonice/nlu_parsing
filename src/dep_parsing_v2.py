@@ -21,6 +21,7 @@ sys.path.insert(0,'./libs')
 from hanlp_parse import han_analyzer
 from sentence_structure_utils import base_structure
 import numpy as np
+from input_process_util import Processor
 #%%
 def get_dep_output_han(sentence,han_analyser):
     try:
@@ -47,7 +48,13 @@ if __name__ == '__main__':
     ## use stanford parser 
     print('parsing using han analyzer....')
     analyzer = han_analyzer()
-    test_data = df[input_column_name].values
+    processor = Processor('./libs/init_stop_words.txt')
+    input_data = df[input_column_name].values
+    #%%
+    test_data = [processor.remove_init_stop_words(i) for i in input_data]
+    assert len(test_data)==len(input_data)
+    df['filtered_input'] = np.array(test_data)
+    #%%
     msg_list = [base_structure(s,analyzer).print_dep_tree(print_out=False) for s in test_data]
     msg_list = ['\n'.join(m) for m in msg_list]
     #%%
