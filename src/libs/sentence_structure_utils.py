@@ -51,6 +51,7 @@ class base_structure(object):
         base_node['node'] = word_obj
         base_node['parent_node'] = word_obj.HEAD
         base_node['lemma'] = word_obj.LEMMA
+        base_node['postag'] = word_obj.POSTAG
         
         children_dict,children = self.analyzer.find_children(self.word_objs,word_obj)
         if children:
@@ -66,9 +67,10 @@ class base_structure(object):
     
     @staticmethod
     def _print_node(node,print_out=True):
-        message = '{}level{}: {}->[{}]->{}'.format('---'*node['level'],
+        message = '{}level{}: {} ({})->[{}]->{}'.format('---'*node['level'],
                                                        node['level'],
                                                        node['lemma'],
+                                                       node['postag'],
                                                        node['node'].DEPREL,
                                                        node['parent_node'].LEMMA)
         if print_out:
@@ -82,6 +84,8 @@ class base_structure(object):
         [1, 2, 3, 4, 5]
         '''
         # base case: list with one element
+        if len(L) == 0:
+            return L
         if len(L) == 1:
             if type(L[0]) == list:
                 result = self._flatten(L[0])
@@ -110,6 +114,21 @@ class base_structure(object):
             print("\n".join(msg))
         
         return msg
+    
+    def loop_nodes(self,node=None,filter_func=None):
+        assert node is not None and filter_func is not None
+        
+        res_list = []
+        if filter_func(node):
+            res_list.append(node)
+            
+        if len(node['children'])>0:
+            for c in node['children']:
+                res_list.append(self.loop_nodes(node=c,filter_func=filter_func))
+        
+        res_list = self._flatten(res_list)
+        
+        return res_list
 
         
         
