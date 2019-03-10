@@ -28,7 +28,7 @@ def read_sets(file_name,sheet_name):
     return set_dict
 
 def read_pattern(file_name,sheet_name,id_column,pattern_column):
-    df = pd.read_excel(kb_path,'ask_pattern')
+    df = pd.read_excel(file_name,sheet_name)
     id_pattern_pair = df[[id_column,pattern_column]].values.tolist()
     #print(id_pattern_pair[1])
     return id_pattern_pair
