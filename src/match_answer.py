@@ -30,6 +30,24 @@ def find_levels(node):
         return True
     else:
         return False
+    
+def find_levels2(node):
+    if node['level'] < 5:
+        return True
+    else:
+        return False
+
+def match(sentence,processor,analyzer,record_list,deep_match=False):
+    sentence = processor.remove_init_stop_words(sentence)
+    res = base_structure(sentence,analyzer)     
+    eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,find_levels)]
+    eles2 = [i['lemma'] for i in res.loop_nodes(res.dep_tree,find_levels2)]
+    
+    ans = match_patterns(eles,record_list,0.6,0.7)
+    if ans and deep_match:
+        print('level > 2 info used for match')
+        ans = match_patterns(eles2,ans,0.6,0.7)
+    return ans
 
 #%%
 kb_path = "../data/raw/knowledge_input.xlsx"
@@ -40,11 +58,10 @@ record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for
                idpp in id_pattern_pairs]
 #%%
 
-test_sentence = "我觉得你有什么厉害的？"
+test_sentence = "你有什么用？"
 analyzer = han_analyzer()
 processor = Processor(init_stop_words_path='./libs/init_stop_words.txt')
-test_sentence = processor.remove_init_stop_words(test_sentence)
-res = base_structure(test_sentence,analyzer)     
-x = [i['lemma'] for i in res.loop_nodes(res.dep_tree,find_levels)]
-ans = match_patterns(x,record_list,0.6,0.6)
-ans = match_patterns(x,ans,0.6,0.7)
+ans = match(test_sentence,processor,analyzer,record_list,deep_match=False)
+
+if ans:    
+    print(ans[0])
