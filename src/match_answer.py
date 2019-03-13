@@ -38,7 +38,7 @@ def find_levels2(node):
         return False
 
 def match(sentence,processor,analyzer,record_list,deep_match=False):
-    sentence = processor.remove_init_stop_words(sentence)
+    sentence = processor.check_and_remove_ini(sentence,analyzer,False)
     res = base_structure(sentence,analyzer)     
     eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,find_levels)]
     eles2 = [i['lemma'] for i in res.loop_nodes(res.dep_tree,find_levels2)]
@@ -58,7 +58,7 @@ record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for
                idpp in id_pattern_pairs]
 #%%
 
-test_sentence = "你有什么用？"
+test_sentence = "你觉得你有什么用？"
 analyzer = han_analyzer()
 processor = Processor(init_stop_words_path='./libs/init_stop_words.txt')
 ans = match(test_sentence,processor,analyzer,record_list,deep_match=False)

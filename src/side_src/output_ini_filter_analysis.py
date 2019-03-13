@@ -40,7 +40,7 @@ def rule_4(node):
     else:
         return False
     
-#%%
+
 def check_all_rules(sentance,analyzer,rule_map):
     check = processor._check_candidate(sentance)
     if check:
