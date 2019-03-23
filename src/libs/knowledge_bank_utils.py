@@ -9,6 +9,7 @@ Created on Sat Mar  2 15:46:04 2019
 import pandas as pd 
 import numpy as np
 import re 
+from request_util import get_intent
 import jieba
 import copy
 #%%
@@ -27,9 +28,10 @@ def read_sets(file_name,sheet_name):
     
     return set_dict
 
-def read_pattern(file_name,sheet_name,id_column,pattern_column):
+def read_pattern(file_name,sheet_name,id_column,pattern_column,intent_c1='intent_class_1', intent_c2='intent_class_2'):
     df = pd.read_excel(file_name,sheet_name)
-    id_pattern_pair = df[[id_column,pattern_column]].values.tolist()
+    #id_pattern_pair = df[[id_column,pattern_column]].values.tolist()
+    id_pattern_pair = df[[id_column,pattern_column,intent_c1,intent_c2]].values.tolist()
     #print(id_pattern_pair[1])
     return id_pattern_pair
 
@@ -65,6 +67,8 @@ def detect_set(p):
 def convert2record_list(id_pattern_pair,set_dict,place_holder_dict=None):
     res_dict = {'id':id_pattern_pair[0],
                 'pattern':id_pattern_pair[1],
+                'intent_class_1':id_pattern_pair[2],
+                'intent_class_2':id_pattern_pair[3],
                 'match_list': list(process_pattern(id_pattern_pair[1],set_dict,place_holder_dict))}
     return res_dict
 
@@ -97,9 +101,16 @@ def _match_pattern(input_list,record):
 #          'pattern_match_score':true_count/record_length}
     return record_copy 
    
-def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5):
+def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5,match_intent=False,intent_classes=None):
     #res_list = [(r,_match_pattern(input_list,r)) for r in record_list]
-    res_list = [_match_pattern(input_list,r) for r in record_list]
+    if match_intent and intent_classes:
+        print('log: apply intent filter')
+        res_list  = [r for r in record_list if (intent_classes['lv1'] in r['intent_class_1'] and intent_classes['lv2'] in r['intent_class_2'])]
+        #print(len(res_list),len(record_list))
+    else:
+        res_list = record_list
+        
+    res_list = [_match_pattern(input_list,r) for r in res_list]
     res_list = [r for r in res_list if r['pattern_match_score']>=pattern_thresh]
     res_list = [r for r in res_list if r['input_score']>=input_thresh]
     if len(res_list) == 0 :
@@ -109,7 +120,20 @@ def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5):
     
     return res_sorted
 
-def check_dups(inpuyt_list):
+def get_intent_classes(text):
+    res = {}
+    try:
+        intent = get_intent(text)
+        res['lv1'] = intent['text']['lv1']['label']
+        res['lv2'] = intent['text']['lv2']['label']
+        res['lv3'] = intent['text']['lv3']['label']
+    except Exception as e:
+        print(e)
+        return None
+    
+    return res
+
+def check_dups(input_list):
     return None
 
 #%%
@@ -118,12 +142,13 @@ if __name__ == "__main__":
     kb_path = "../../data/raw/knowledge_input.xlsx"
     set_dict = read_sets(kb_path,'sets')
     place_holder_dict = read_sets(kb_path,'place_holder')
-    id_pattern_pairs = read_pattern(kb_path,'ask_pattern','Unnamed: 1','pattern')
+    id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_name','pattern')
     record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for idpp in id_pattern_pairs]
     ## run one test 
     test = "你叫什么名字？"
+    intent = get_intent_classes(test)
     test = list(jieba.cut(test))
-    res = match_patterns(test,record_list,0.6,0.6)
+    res = match_patterns(test,record_list,0.6,0.6,match_intent=True,intent_classes=intent)
     res = match_patterns(test,res,0.6,0.7)
     
     print(res)
