@@ -8,7 +8,10 @@ Created on Sat Mar  9 21:45:43 2019
 
 import sys 
 import os 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+try:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+except:
+    dir_path = '.'
 #sys.path.insert(0,'./libs')
 sys.path.insert(0,os.path.join(dir_path,'libs'))
 
@@ -25,7 +28,7 @@ class NLU_match(object):
     def __init__(self,kb_path,init_stop_words_path):
         self.set_dict = read_sets(kb_path,'sets')
         self.place_holder_dict = read_sets(kb_path,'place_holder')
-        self.id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_name','pattern')
+        self.id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_id','pattern')
         self.record_list = [convert2record_list(idpp,self.set_dict,self.place_holder_dict) for 
                             idpp in self.id_pattern_pairs]
         
@@ -72,10 +75,10 @@ class NLU_match(object):
             intent_classes = self.get_intent_classes(sentence)
         
         ## start matching
-        ans = self.match_patterns(eles,self.record_list,0.6,0.7,match_intent,intent_classes)
+        ans = self.match_patterns(eles,self.record_list,0.4,0.7,match_intent,intent_classes)
         if ans and deep_match and len(eles2)>len(eles):
             print('log: level > 2 info used for match')
-            ans = self.match_patterns(eles2,ans,0.4,0.4)
+            ans = self.match_patterns(eles2,ans,0.3,0.6)
             
         return ans
 
@@ -91,9 +94,19 @@ if __name__ == "__main__":
     if ans:    
         print(ans[0])
     
-    
-    
-    
+    #%%
+    # run all 
+    def get_top_answer(ask,nlu=nlu):
+        ans = nlu.match(ask,deep_match=True,match_intent=False)
+        if ans:
+            return ans[0]['id']
+        else:
+            return None
+        
+    test_file_path = '../data/raw/test_data.csv'
+    data = pd.read_csv(test_file_path)
+    data['res'] = data['input'].apply(get_top_answer)
+    data.to_csv('../data/results/nlu_test_res.csv')
     #%%
     
     
