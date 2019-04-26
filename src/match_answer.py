@@ -65,6 +65,7 @@ class NLU_match(object):
         sentence = self.processor.check_and_remove_ini(sentence,self.analyzer,False)
         res = self.base_structure(sentence,self.analyzer)     
         eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels)]
+        print(eles)
         eles2 = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels2)]
         if len(eles)<1:
             print('log: your input sentence is empty')
@@ -89,8 +90,8 @@ if __name__ == "__main__":
     nlu = NLU_match(kb_path,init_stop_words_path)
     
     #%%
-    test_sentence = "你觉得你有什么用？"
-    ans = nlu.match(test_sentence,deep_match=True,match_intent=True)
+    test_sentence = "你多大了？"
+    ans = nlu.match(test_sentence,deep_match=True,match_intent=False)
     if ans:    
         print(ans[0])
     
