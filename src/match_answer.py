@@ -65,7 +65,7 @@ class NLU_match(object):
         sentence = self.processor.check_and_remove_ini(sentence,self.analyzer,False)
         res = self.base_structure(sentence,self.analyzer)     
         eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels)]
-        print(eles)
+        #print(eles)
         eles2 = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels2)]
         if len(eles)<1:
             print('log: your input sentence is empty')
@@ -90,7 +90,16 @@ if __name__ == "__main__":
     nlu = NLU_match(kb_path,init_stop_words_path)
     
     #%%
-    test_sentence = "你多大了？"
+    # run one example 
+    test_sentence = "你觉得你能教我学乐器吗？"
+    test_sentence= "你觉得如果我买你，你能帮我做些什么事情呢？"
+    res = nlu.base_structure(test_sentence,nlu.analyzer)
+    res.print_dep_tree()
+    test_sentence = nlu.processor.check_and_remove_ini(test_sentence,nlu.analyzer,False)
+    res = nlu.base_structure(test_sentence,nlu.analyzer)
+    res.print_dep_tree()
+    eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,nlu.find_levels)]
+    print('level 1 nodes: {}'.format(eles))
     ans = nlu.match(test_sentence,deep_match=True,match_intent=False)
     if ans:    
         print(ans[0])
@@ -108,49 +117,3 @@ if __name__ == "__main__":
     data = pd.read_csv(test_file_path)
     data['res'] = data['input'].apply(get_top_answer)
     data.to_csv('../data/results/nlu_test_res.csv')
-    #%%
-    
-    
-#    kb_path = "../data/raw/knowledge_input.xlsx"
-#    test_file_path = "../data/raw/mdl_test_data.xlsx"
-#    set_dict = read_sets(kb_path,'sets')
-#    place_holder_dict = read_sets(kb_path,'place_holder')
-#    id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_name','pattern')
-#    record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for 
-#                   idpp in id_pattern_pairs]
-#    #%%
-#    test_df = pd.read_excel(test_file_path,'test_corpus')
-#    test_data = test_df['input'].tolist()
-#    #%%
-#    
-#    analyzer = han_analyzer()
-#    processor = Processor(init_stop_words_path='./libs/init_stop_words.txt')
-#    
-#    #%%
-#    # run one test sentence 
-#    test_sentence = "你觉得你有什么用？"
-#    ans = match(test_sentence,processor,analyzer,record_list,deep_match=True)
-#    
-#    if ans:    
-#        print(ans[0])
-#        
-#    #%%
-#    res = []
-#    res_deep = []
-#    for t in test_data:
-#        ans = match(t,processor,analyzer,record_list,deep_match=False)
-#        ans_deep = match(t,processor,analyzer,record_list,deep_match=True)
-#        if ans:
-#            res.append(ans[0]['id'])
-#        else:
-#            res.append(ans)
-#        
-#        if ans_deep:
-#            res_deep.append(ans_deep[0]['id'])
-#        else:
-#            res_deep.append(ans_deep)
-#    #%%
-#    df_data = zip(test_data,test_df['test_category'].tolist(),res,res_deep)
-#    out_df = pd.DataFrame(df_data,columns=['input','test_category','res','res_deep'])
-#    #%%
-#    out_df.to_excel('../data/results/match_res.xlsx')
