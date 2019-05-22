@@ -32,6 +32,8 @@ class Processor(object):
         with open(file_path, "r") as f:
             input_list = f.readlines()
             input_list = [i.strip('\n').strip() for i in input_list]
+        
+        input_list.sort(key=len, reverse=True)
         return input_list
     
     def _check_candidate(self,input_sentance,verbose=False):
@@ -166,5 +168,5 @@ if __name__=="__main__":
     
     
     # easy one function to process everything
-    res = processor.check_and_remove_ini(test,verbose=False)    
+    res = processor.check_and_remove_ini(test,analyzer,verbose=False)    
     print(res)
