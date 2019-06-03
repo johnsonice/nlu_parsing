@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 import re 
 from request_util import get_intent
-from chatbot_keywords_utils import read_keywords
+from chatbot_keywords_utils import read_keywords,get_weights
 import jieba
 import copy
 #%%
@@ -83,30 +83,52 @@ def unique(sequence):
     seen = set()
     return [x for x in sequence if not (x in seen or seen.add(x))]
 
-def match_element_with_order(input_word,record):
+def match_element_with_order(input_word_tuple,record):
+    input_word, input_weight = input_word_tuple
     for idx,wl in enumerate(record['match_list']):
         if isinstance(wl,list):
             for w in wl:
                 if input_word in str(w) and len(input_word)/len(str(w))>0.5:
-                    return idx
+                    return idx,input_weight
                 else:
                     pass
         else:
             wl = str(wl)
             if input_word in wl and len(input_word)/len(wl)>0.5:
-                return idx
+                return idx,input_weight
             else:
                 pass
     return False 
 
-def _match_pattern(input_list,record):
+def _match_pattern(input_list,record,key_dict,weight=True):
+    ## make a copy of the record first 
     record_copy = copy.copy(record)
+    
+    ## get weights for each input word 
+    if weight:
+        input_list = get_weights(input_list,key_dict)
+    else:
+        input_list = [(i,1) for i in input_list]
+    
+    ## get match results 
     res = [match_element_with_order(i,record_copy) for i in input_list]
     res = [r for r in res if not r is False]
-    true_count_input = len(res)
-    input_length = len(input_list)
-    true_count_record = len(set(res))
-    record_length = len(record_copy['match_list'])
+    
+    ####
+    ## think aobut if keep len(res) == 0 
+    ####
+    
+    ## calculate match statistics 
+    #true_count_input = len(res)
+    true_count_input = sum([i[1] for i in res])
+    #input_length = len(input_list)
+    input_length = sum([i[1] for i in input_list])
+    
+    ## calculate match score 
+    true_count_record = sum([i[1] for i in set(res)])
+    record_length = len(record_copy['match_list']) + sum([i[1]-1 for i in res])
+    
+    ## assign matrix
     record_copy['input_score']=true_count_input/input_length
     pm_score = true_count_record/record_length
     if pm_score >= 1 :
@@ -119,12 +141,13 @@ def _match_pattern(input_list,record):
     else:
         record_copy['pattern_match_score']=pm_score
     
+    record_copy['chatbot_keywords'] = [i for i in input_list if i[1]>1]
 #    res = {'input_score':true_count/input_length,
 #          'pattern_match_score':true_count/record_length}
     return record_copy 
 
 
-def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5,match_intent=False,intent_classes=None):
+def match_patterns(input_list,record_list,key_dict,input_thresh=0.5,pattern_thresh=0.5,match_intent=False,intent_classes=None):
     #res_list = [(r,_match_pattern(input_list,r)) for r in record_list]
     if match_intent and intent_classes:
         print('log: apply intent filter')
@@ -133,7 +156,7 @@ def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5,ma
     else:
         res_list = record_list
         
-    res_list = [_match_pattern(input_list,r) for r in res_list]
+    res_list = [_match_pattern(input_list,r,key_dict) for r in res_list]
     res_list = [r for r in res_list if r['pattern_match_score']>=pattern_thresh]
     res_list = [r for r in res_list if r['input_score']>=input_thresh]
     if len(res_list) == 0 :
@@ -174,9 +197,15 @@ if __name__ == "__main__":
     test = "你叫什么名字？"
     intent = get_intent_classes(test)
     test = list(jieba.cut(test))
-    res = match_patterns(test,record_list,0.6,0.6,match_intent=False,intent_classes=intent)
     #%%
-    res = match_patterns(test,res,0.6,0.7)
+    test_record = record_list[0]
+    rl = _match_pattern(test,test_record,key_dict)
     
-    print(res)
+    #%%
+    res = match_patterns(test,record_list,key_dict,0.6,0.6,match_intent=False,intent_classes=intent)
+    #%%
+    res = match_patterns(test,res,key_dict,0.6,0.7)
+    print(res[0])
 
+    
+    
