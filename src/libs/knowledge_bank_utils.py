@@ -72,35 +72,51 @@ def convert2record_list(id_pattern_pair,set_dict,place_holder_dict=None):
                 'match_list': list(process_pattern(id_pattern_pair[1],set_dict,place_holder_dict))}
     return res_dict
 
-def match_element(input_word,record):
-    for wl in record['match_list']:
+def unique(sequence):
+    seen = set()
+    return [x for x in sequence if not (x in seen or seen.add(x))]
+
+def match_element_with_order(input_word,record):
+    for idx,wl in enumerate(record['match_list']):
         if isinstance(wl,list):
             for w in wl:
                 if input_word in str(w) and len(input_word)/len(str(w))>0.5:
-                    return True
+                    return idx
                 else:
                     pass
         else:
             wl = str(wl)
             if input_word in wl and len(input_word)/len(wl)>0.5:
-                return True
+                return idx
             else:
                 pass
     return False 
 
 def _match_pattern(input_list,record):
     record_copy = copy.copy(record)
-    res = [match_element(i,record) for i in input_list]
-    true_count = sum(res)
-    input_length = len(res)
-    record_length = len(record['match_list'])
-    record_copy['input_score']=true_count/input_length
-    record_copy['pattern_match_score']=true_count/record_length
-
+    res = [match_element_with_order(i,record_copy) for i in input_list]
+    res = [r for r in res if not r is False]
+    true_count_input = len(res)
+    input_length = len(input_list)
+    true_count_record = len(set(res))
+    record_length = len(record_copy['match_list'])
+    record_copy['input_score']=true_count_input/input_length
+    pm_score = true_count_record/record_length
+    if pm_score >= 1 :
+        res_set = unique(res)
+        ords = all(i < j for i, j in zip(res_set, res[1:])) 
+        if ords:
+            record_copy['pattern_match_score']=pm_score + 1 
+        else:
+            record_copy['pattern_match_score']=pm_score
+    else:
+        record_copy['pattern_match_score']=pm_score
+    
 #    res = {'input_score':true_count/input_length,
 #          'pattern_match_score':true_count/record_length}
     return record_copy 
-   
+
+
 def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5,match_intent=False,intent_classes=None):
     #res_list = [(r,_match_pattern(input_list,r)) for r in record_list]
     if match_intent and intent_classes:
@@ -144,11 +160,13 @@ if __name__ == "__main__":
     place_holder_dict = read_sets(kb_path,'place_holder')
     id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_name','pattern')
     record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for idpp in id_pattern_pairs]
+    #%%
     ## run one test 
     test = "你叫什么名字？"
     intent = get_intent_classes(test)
     test = list(jieba.cut(test))
-    res = match_patterns(test,record_list,0.6,0.6,match_intent=True,intent_classes=intent)
+    res = match_patterns(test,record_list,0.6,0.6,match_intent=False,intent_classes=intent)
+    #%%
     res = match_patterns(test,res,0.6,0.7)
     
     print(res)
