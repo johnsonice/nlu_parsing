@@ -10,9 +10,16 @@ import pandas as pd
 import numpy as np
 import re 
 from request_util import get_intent
-from chatbot_keywords_utils import read_keywords
+from chatbot_keywords_utils import read_keywords,get_weights
+from mp_util import Mp
+from functools import partial
 import jieba
 import copy
+import time
+import os 
+
+import logging
+logging.basicConfig(format='%(levelname)s - %(message)s',level=logging.DEBUG)
 #%%
 
 def read_sets(file_name,sheet_name):
@@ -31,6 +38,7 @@ def read_sets(file_name,sheet_name):
 
 def read_pattern(file_name,sheet_name,id_column,pattern_column,intent_c1='intent_class_1', intent_c2='intent_class_2'):
     df = pd.read_excel(file_name,sheet_name)
+    df.fillna('NA',inplace=True)
     #id_pattern_pair = df[[id_column,pattern_column]].values.tolist()
     id_pattern_pair = df[[id_column,pattern_column,intent_c1,intent_c2]].values.tolist()
     #print(id_pattern_pair[1])
@@ -46,7 +54,7 @@ def process_pattern(p,set_dict,place_holder_dict=None):
                 if s in set_key_list:
                     yield set_dict[s]
                 else:
-                    print('\nwaring, {} not in set list:{}\n'.format(s,p))
+                    logging.info('waring, {} not in set list:{}'.format(s,p))
                     yield None
         else:
             if place_holder_dict:
@@ -73,40 +81,58 @@ def convert2record_list(id_pattern_pair,set_dict,place_holder_dict=None):
                 'match_list': list(process_pattern(id_pattern_pair[1],set_dict,place_holder_dict))}
     return res_dict
 
-def get_weights(input_list,key_dict):
-    '''get weights for each input words, if in key list, weights > 1'''
-    matched_dict = [(k,key_dict.get(k,1)) for k in input_list]
-    return matched_dict
-
 def unique(sequence):
     '''get unique but keep order'''
     seen = set()
     return [x for x in sequence if not (x in seen or seen.add(x))]
 
-def match_element_with_order(input_word,record):
+def match_element_with_order(input_word_tuple,record):
+    input_word, input_weight = input_word_tuple
     for idx,wl in enumerate(record['match_list']):
         if isinstance(wl,list):
             for w in wl:
                 if input_word in str(w) and len(input_word)/len(str(w))>0.5:
-                    return idx
+                    return idx,input_weight
                 else:
                     pass
         else:
             wl = str(wl)
             if input_word in wl and len(input_word)/len(wl)>0.5:
-                return idx
+                return idx,input_weight
             else:
                 pass
     return False 
 
-def _match_pattern(input_list,record):
-    record_copy = copy.copy(record)
-    res = [match_element_with_order(i,record_copy) for i in input_list]
+def _match_pattern(record,input_list,key_dict,weight=True):
+    ## make a copy of the record first 
+    #record_copy = copy.copy(record)
+    
+    ## get weights for each input word 
+    if weight:
+        input_list = get_weights(input_list,key_dict)
+    else:
+        input_list = [(i,1) for i in input_list]
+    
+    ## get match results 
+    res = [match_element_with_order(i,record) for i in input_list]
     res = [r for r in res if not r is False]
-    true_count_input = len(res)
-    input_length = len(input_list)
-    true_count_record = len(set(res))
-    record_length = len(record_copy['match_list'])
+    
+    if len(res)<1:
+        return None
+    
+    ## make a copy
+    record_copy = copy.copy(record)
+    ## calculate match statistics 
+    #true_count_input = len(res)
+    true_count_input = sum([i[1] for i in res])
+    #input_length = len(input_list)
+    input_length = sum([i[1] for i in input_list])
+    
+    ## calculate match score 
+    true_count_record = sum([i[1] for i in set(res)])
+    record_length = len(record_copy['match_list']) + sum([i[1]-1 for i in res])
+    
+    ## assign matrix
     record_copy['input_score']=true_count_input/input_length
     pm_score = true_count_record/record_length
     if pm_score >= 1 :
@@ -119,12 +145,13 @@ def _match_pattern(input_list,record):
     else:
         record_copy['pattern_match_score']=pm_score
     
+    record_copy['chatbot_keywords'] = [i for i in input_list if i[1]>1]
 #    res = {'input_score':true_count/input_length,
 #          'pattern_match_score':true_count/record_length}
     return record_copy 
 
 
-def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5,match_intent=False,intent_classes=None):
+def match_patterns(input_list,record_list,key_dict,input_thresh=0.5,pattern_thresh=0.5,match_intent=False,intent_classes=None,multi=True):
     #res_list = [(r,_match_pattern(input_list,r)) for r in record_list]
     if match_intent and intent_classes:
         print('log: apply intent filter')
@@ -132,8 +159,15 @@ def match_patterns(input_list,record_list,input_thresh=0.5,pattern_thresh=0.5,ma
         #print(len(res_list),len(record_list))
     else:
         res_list = record_list
+    
+    if multi:
+        mp_match = partial(_match_pattern, input_list = input_list,key_dict=key_dict,weight=True)        
+        mp = Mp(record_list,mp_match)
+        res_list = mp.multi_process_files(chunk_size=20000)
+    else:
+        res_list = [_match_pattern(r,input_list,key_dict) for r in res_list]
         
-    res_list = [_match_pattern(input_list,r) for r in res_list]
+    res_list = [r for r in res_list if r is not None]
     res_list = [r for r in res_list if r['pattern_match_score']>=pattern_thresh]
     res_list = [r for r in res_list if r['input_score']>=input_thresh]
     if len(res_list) == 0 :
@@ -162,21 +196,32 @@ def check_dups(input_list):
 #%%
 if __name__ == "__main__":
     ## load data and pattern
-    kb_path = "../../data/raw/knowledge_input.xlsx"
+    #kb_path = "../../data/raw/knowledge_input.xlsx"
+    kb_path = "../../data/raw/victor_knowledge_input.xlsx"
     data_path = "../../data/raw/chatbot_keywords.csv"
     key_dict = read_keywords(data_path)
     set_dict = read_sets(kb_path,'sets')
     place_holder_dict = read_sets(kb_path,'place_holder')
-    id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_name','pattern')
+    id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_id','pattern')
+    #%%
     record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for idpp in id_pattern_pairs]
     #%%
     ## run one test 
     test = "你叫什么名字？"
     intent = get_intent_classes(test)
     test = list(jieba.cut(test))
-    res = match_patterns(test,record_list,0.6,0.6,match_intent=False,intent_classes=intent)
     #%%
-    res = match_patterns(test,res,0.6,0.7)
+    test_record = record_list[0]
+    rl = _match_pattern(test_record,test,key_dict)
     
-    print(res)
+    #%%
 
+    start = time.time()
+    res = match_patterns(test,record_list,key_dict,0.6,0.6,match_intent=False,intent_classes=intent,multi=True)
+    print ('It took', time.time()-start, 'seconds.')    
+    #%%
+    res = match_patterns(test,res,key_dict,0.6,0.7)
+    print(res[0])
+
+    
+    

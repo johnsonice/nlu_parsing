@@ -61,23 +61,12 @@ class NLU_match(object):
         else:
             return False
     
-    @staticmethod
-    def filter_and_rank(res_obj,find_level_func):
-        #eles = [i['lemma'] for i in res_obj.loop_nodes(res_obj.dep_tree,find_level_func)]
-        eles = [(i['id'],i['lemma']) for i in res_obj.loop_nodes(res_obj.dep_tree,find_level_func)]
-        eles = sorted(eles,key = lambda x:x[0])
-        eles = [x[1] for x in eles]
-        return eles
-    
     def match(self,sentence,deep_match=False,match_intent=False):
         sentence = self.processor.check_and_remove_ini(sentence,self.analyzer,False)
         res = self.base_structure(sentence,self.analyzer)     
-        #eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels)]
-        eles = self.filter_and_rank(res,self.find_levels)
+        eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels)]
         #print(eles)
-        #eles2 = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels2)]
-        eles2 = self.filter_and_rank(res,self.find_levels2)
-        #print(eles2)
+        eles2 = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels2)]
         if len(eles)<1:
             print('log: your input sentence is empty')
             return None
@@ -100,23 +89,17 @@ if __name__ == "__main__":
     init_stop_words_path = './libs/init_stop_words.txt'
     nlu = NLU_match(kb_path,init_stop_words_path)
     
+    #%%
     # run one example 
     test_sentence = "你觉得你能教我学乐器吗？"
     test_sentence= "你觉得如果我买你，你能帮我做些什么事情呢？"
     res = nlu.base_structure(test_sentence,nlu.analyzer)
     res.print_dep_tree()
-    ## remove initial 
     test_sentence = nlu.processor.check_and_remove_ini(test_sentence,nlu.analyzer,False)
     res = nlu.base_structure(test_sentence,nlu.analyzer)
     res.print_dep_tree()
-
-#%%
-    #eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,nlu.find_levels)]
-    eles = nlu.filter_and_rank(res,nlu.find_levels2)
-    print('level 2 nodes: {}'.format(eles))
-    
-    #%%
-    test_sentence= "你叫什么名字？"
+    eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,nlu.find_levels)]
+    print('level 1 nodes: {}'.format(eles))
     ans = nlu.match(test_sentence,deep_match=True,match_intent=False)
     if ans:    
         print(ans[0])
