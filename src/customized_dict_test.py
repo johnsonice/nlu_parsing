@@ -7,6 +7,7 @@ Created on Wed Feb 20 12:13:39 2019
 """
 
 from pyhanlp import *
+import os
 import sys 
 sys.path.insert(0,'./libs')
 from hanlp_parse import han_analyzer

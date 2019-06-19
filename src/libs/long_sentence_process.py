@@ -43,10 +43,14 @@ class Long_sentence_processor(object):
         else:
             return False
         
-    @staticmethod
-    def check_candidates(sentence,verbose=True):
+
+    def check_candidates(self,sentence,verbose=True):
         ## simple normalization
+        nono_list = ['如果']
         sentence = re.sub(r'\s+', ' ', sentence).strip()
+        sentence = re.sub(r',\s+', ',', sentence)
+        sentence = re.sub(r'，\s+', ',', sentence)
+        sentence = self.ini_processor.check_and_remove_ini(sentence,self.analyzer,verbose=False)
         
         ## check for comma and space
         if any(w in sentence for w in ['，',' ',',']):
@@ -69,6 +73,9 @@ class Long_sentence_processor(object):
         else:
             if verbose:
                 print('some components are <= 4 words')
+            return False
+        
+        if any(w in eles[0] for w in nono_list):
             return False
         
         return True
@@ -100,8 +107,9 @@ class Long_sentence_processor(object):
     
     def check_amd_split(self,sentence,verbose=False):
         ## first level check 
-        if all([self.check_candidates(sentence,verbose=verbose),self.check_dependency_rules(sentence,verbose=verbose)]):
-            print('check passed')
+        if all([self.check_candidates(sentence,verbose=verbose),
+                self.check_dependency_rules(sentence,verbose=verbose)]):
+            #print('check passed')
             sentence = re.sub(r'\s+', ' ', sentence).strip()
             eles = re.split(r'，| |,',sentence)
             return eles
@@ -112,16 +120,16 @@ class Long_sentence_processor(object):
 #%%
 if __name__ == '__main__':
     LP = Long_sentence_processor('./init_stop_words.txt')
-    ts = ["可以和我说说你的工作原理是什么吗？",
-          "想学点东西，你觉得学什么好",
-          "你会通过什么方式来赚钱",
-          "对于XX的前景，你怎么看",
-          "能告诉我你的信息在哪里得来的？",
-          "我认为你是一个没有什么价值的机器人"]
+    ts = ["你觉得如果我买你，你能帮我做些什么事情呢？"]
     for s in ts:
         print(LP.check_amd_split(s))
 
-    
+#"可以和我说说你的工作原理是什么吗？",
+#          "想学点东西，你觉得学什么好",
+#          "你会通过什么方式来赚钱",
+#          "对于XX的前景，你怎么看",
+#          "能告诉我你的信息在哪里得来的？",
+#          "我认为你是一个没有什么价值的机器人",
 
 
 

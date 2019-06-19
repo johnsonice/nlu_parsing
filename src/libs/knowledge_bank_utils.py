@@ -171,7 +171,7 @@ def match_patterns(input_list,record_list,key_dict,input_thresh=0.5,pattern_thre
     res_list = [r for r in res_list if r['pattern_match_score']>=pattern_thresh]
     res_list = [r for r in res_list if r['input_score']>=input_thresh]
     if len(res_list) == 0 :
-        return None
+        return []
     
     res_sorted = sorted(res_list, key = lambda x: ( x['input_score'],x['pattern_match_score']),reverse=True)
     

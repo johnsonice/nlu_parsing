@@ -20,14 +20,16 @@ from chatbot_keywords_utils import read_keywords
 from hanlp_parse import han_analyzer
 from sentence_structure_utils import base_structure
 from input_process_util import Processor
+from long_sentence_process import Long_sentence_processor
 #import pandas as pd
 
 import logging
 logging.basicConfig(format='%(levelname)s - %(message)s', level=logging.DEBUG)
 
 #%%
-class NLU_match(object):
+class RB2(object):
     """
+    rule base 2 functionalities 
     an hanlp analyzer object for dependency parsing an other related operations 
     """
     def __init__(self,kb_path,init_stop_words_path,keywords_path):
@@ -43,6 +45,7 @@ class NLU_match(object):
         self.base_structure = base_structure
         self.match_patterns = match_patterns
         self.get_intent_classes=get_intent_classes
+        self.long_sentence_processor = Long_sentence_processor(init_stop_words_path)
         
         
     def get_dep_output_han(self,sentence):
@@ -75,7 +78,7 @@ class NLU_match(object):
         eles = [x[1] for x in eles]
         return eles
     
-    def match(self,sentence,deep_match=False,match_intent=False):
+    def match_one(self,sentence,deep_match=False,match_intent=False,topn=5):
         sentence = self.processor.check_and_remove_ini(sentence,self.analyzer,False)
         res = self.base_structure(sentence,self.analyzer)     
         #eles = [i['lemma'] for i in res.loop_nodes(res.dep_tree,self.find_levels)]
@@ -98,7 +101,38 @@ class NLU_match(object):
             print('log: level > 2 info used for match')
             ans = self.match_patterns(eles2,ans,self.keyword_dict,0.3,0.6)
             
-        return ans
+        return ans[:topn]
+    
+    def match(self,sentence,deep_match=False,match_intent=False,topn=5,check_long_sentence=True):
+        
+        if check_long_sentence:
+            processed_inputs = self.long_sentence_processor.check_amd_split(sentence)
+            logging.info(processed_inputs)
+            if isinstance(processed_inputs, (list,)):
+                res = {
+                        'answer1':self.match_one(processed_inputs[0],
+                                                deep_match=deep_match,
+                                                match_intent=match_intent,
+                                                topn=topn),
+                       'asnwer2':self.match_one(processed_inputs[1],
+                                                deep_match=deep_match,
+                                                match_intent=match_intent,
+                                                topn=topn)
+                       }
+            else:
+                res = {'answer1':self.match_one(processed_inputs[0],
+                                            deep_match=deep_match,
+                                            match_intent=match_intent,
+                                            topn=topn),
+                        'asnwer2':None}
+        else:
+            res = {'answer1':self.match_one(processed_inputs[0],
+                                            deep_match=deep_match,
+                                            match_intent=match_intent,
+                                            topn=topn),
+                   'asnwer2':None}
+        
+        return res
     
     def evaluate_pattern(self,sentence,input_pattern,deep_match=False,match_intent=False):
         try:
@@ -118,23 +152,20 @@ class NLU_match(object):
 
 #%%
 if __name__ == "__main__":
-    kb_path = "../data/raw/knowledge_input.xlsx"
-    #kb_path = "../data/raw/victor_knowledge_input.xlsx"
+    #kb_path = "../data/raw/knowledge_input.xlsx"
+    kb_path = "../data/raw/victor_knowledge_input.xlsx"
     init_stop_words_path = './libs/init_stop_words.txt'
     chatbot_keywords_path = "../data/raw/chatbot_keywords.csv"
-    nlu = NLU_match(kb_path,init_stop_words_path,chatbot_keywords_path)
+    nlu = RB2(kb_path,init_stop_words_path,chatbot_keywords_path)
     #%%
     # run one example 
     test_sentence = "你觉得你能教我学乐器吗？"
-    test_sentence= "你觉得如果我买你，你能帮我做些什么事情呢？"
-    test_sentence= "你能说说伦敦的房地产怎么样么"
-
+    test_sentence= "这句话应该分成两句，你能帮我做些什么事情呢？"
     #%%
     #test_sentence= "你能说说伦敦的房地投资机会怎么样"
-    ans = nlu.match(test_sentence,deep_match=True,match_intent=False)
-    if ans:    
-        print(ans[0])
-
+    ans = nlu.match(test_sentence,deep_match=True,match_intent=False,topn=1,check_long_sentence=True)
+    print(ans)
+    #%%
     input_pattern = '<set>Victor</set>#<set>可以</set>#<set>描述</set>#'
     #input_pattern=None
     res = nlu.evaluate_pattern(test_sentence,input_pattern)
