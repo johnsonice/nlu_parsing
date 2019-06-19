@@ -201,6 +201,7 @@ if __name__ == "__main__":
     data_path = "../../data/raw/chatbot_keywords.csv"
     key_dict = read_keywords(data_path)
     set_dict = read_sets(kb_path,'sets')
+    #%%
     place_holder_dict = read_sets(kb_path,'place_holder')
     id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_id','pattern')
     #%%

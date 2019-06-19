@@ -32,9 +32,9 @@ df_placeholder = pd.DataFrame(columns=['place_holder','value'])
 #%%
 ## export to excel 
 writer = pd.ExcelWriter(out_data_path, engine='xlsxwriter')
-df_master.to_excel(writer, sheet_name='ask_pattern')
-df_set.to_excel(writer, sheet_name='sets')
-df_placeholder.to_excel(writer,sheet_name='place_holder')
+df_master.to_excel(writer, sheet_name='ask_pattern',index=False)
+df_set.to_excel(writer, sheet_name='sets',index=False)
+df_placeholder.to_excel(writer,sheet_name='place_holder',index=False)
 writer.save()
 
 #%%
