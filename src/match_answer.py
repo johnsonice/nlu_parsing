@@ -120,13 +120,13 @@ class RB2(object):
                                                 topn=topn)
                        }
             else:
-                res = {'answer1':self.match_one(processed_inputs[0],
+                res = {'answer1':self.match_one(processed_inputs,
                                             deep_match=deep_match,
                                             match_intent=match_intent,
                                             topn=topn),
                         'asnwer2':None}
         else:
-            res = {'answer1':self.match_one(processed_inputs[0],
+            res = {'answer1':self.match_one(processed_inputs,
                                             deep_match=deep_match,
                                             match_intent=match_intent,
                                             topn=topn),
@@ -148,24 +148,29 @@ class RB2(object):
             logging.warning(e)
             return None
         
-        return ans[0]
+        if len(ans)>0:
+            return ans[0]
+        else:
+            return None
+
 
 #%%
 if __name__ == "__main__":
-    #kb_path = "../data/raw/knowledge_input.xlsx"
-    kb_path = "../data/raw/victor_knowledge_input.xlsx"
+    kb_path = "../data/raw/knowledge_input.xlsx"
+    #kb_path = "../data/raw/victor_knowledge_input.xlsx"
     init_stop_words_path = './libs/init_stop_words.txt'
     chatbot_keywords_path = "../data/raw/chatbot_keywords.csv"
     nlu = RB2(kb_path,init_stop_words_path,chatbot_keywords_path)
     #%%
     # run one example 
-    test_sentence = "你觉得你能教我学乐器吗？"
-    test_sentence= "这句话应该分成两句，你能帮我做些什么事情呢？"
-    #%%
+    test_sentence = "你能做什么事情"
+    #test_sentence= "这句话应该分成两句，你能帮我做些什么事情呢？"
     #test_sentence= "你能说说伦敦的房地投资机会怎么样"
     ans = nlu.match(test_sentence,deep_match=True,match_intent=False,topn=1,check_long_sentence=True)
     print(ans)
+
     #%%
+    test_sentence = "你能做什么事情"
     input_pattern = '<set>Victor</set>#<set>可以</set>#<set>描述</set>#'
     #input_pattern=None
     res = nlu.evaluate_pattern(test_sentence,input_pattern)

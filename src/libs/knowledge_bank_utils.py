@@ -207,7 +207,7 @@ if __name__ == "__main__":
     record_list = [convert2record_list(idpp,set_dict,place_holder_dict) for idpp in id_pattern_pairs]
     #%%
     ## run one test 
-    test = "你叫什么名字？"
+    test = "你能做什么事情"
     intent = get_intent_classes(test)
     test = list(jieba.cut(test))
     #%%
