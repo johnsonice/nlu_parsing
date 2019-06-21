@@ -27,7 +27,7 @@ if __name__ == "__main__":
     nlu = RB2(kb_path,init_stop_words_path,chatbot_keywords_path)
     #%%
     # run one example 
-    test_sentence= "你好啊，你会做什么事情么"
+    test_sentence= "你会做什么事情么"
     ans = nlu.match(test_sentence,deep_match=True,match_intent=False,topn=1,check_long_sentence=True)   
     print(ans)
 #%%
