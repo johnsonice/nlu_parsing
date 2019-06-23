@@ -22,18 +22,33 @@ import logging
 logging.basicConfig(format='%(levelname)s - %(message)s',level=logging.DEBUG)
 #%%
 
-def read_sets(file_name,sheet_name):
-    #pd.read_excel(file_name,sheet_name)
-    set_df =  pd.read_excel(file_name,sheet_name).values.tolist()
-    set_ids = [r[0] for r in set_df]
-    # make sure their is no duplicates 
-    assert len(set_ids) == len(set(set_ids)), "duplicate set ids, please check raw data"
-    set_vals = [r[1:] for r in set_df]
-    ## filter nan out of values 
-    set_vals = [[i for i in r if not pd.isna(i)] for r in set_vals]
-    set_dict_val = zip(set_ids,set_vals)
-    set_dict = {i[0]:i[1] for i in set_dict_val}
-    
+def read_sets(file_name,sheet_name=None):
+    if '.xls' in file_name:
+        logging.info('read set from excel file')
+        #pd.read_excel(file_name,sheet_name)
+        set_df =  pd.read_excel(file_name,sheet_name).values.tolist()
+        set_ids = [r[0] for r in set_df]
+        # make sure their is no duplicates 
+        assert len(set_ids) == len(set(set_ids)), "duplicate set ids, please check raw data"
+        set_vals = [r[1:] for r in set_df]
+        ## filter nan out of values 
+        set_vals = [[i for i in r if not pd.isna(i)] for r in set_vals]
+        set_dict_val = zip(set_ids,set_vals)
+        set_dict = {i[0]:i[1] for i in set_dict_val}
+        
+    elif os.path.isdir(file_name):
+        set_path = file_name
+        logging.info('read set from txt files')
+        set_dict = {}
+        set_files = os.listdir(set_path)
+        set_files = [os.path.join(set_path,f) for f in set_files if '.txt' in f]
+        for fi in set_files:
+            file_name = fi.split("/")[-1].split('.')[0]
+            with open(fi,'r') as f:
+                lineList = f.readlines()
+                lineList = [s.strip().replace(" ","").lower() for s in lineList] ## for now, replace all spaces 
+            set_dict[file_name] = lineList
+        
     return set_dict
 
 def read_pattern(file_name,sheet_name,id_column,pattern_column,intent_c1='intent_class_1', intent_c2='intent_class_2'):
@@ -66,7 +81,7 @@ def process_pattern(p,set_dict,place_holder_dict=None):
                 yield r
             
 def detect_set(p):
-    setRegex = re.compile(r'<set>(.*?)</set>')
+    setRegex = re.compile(r'<set>(.*?)<',flags=re.IGNORECASE)
     res = setRegex.findall(p)
     if len(res)>0:
         return res

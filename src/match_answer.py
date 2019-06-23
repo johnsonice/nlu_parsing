@@ -21,6 +21,8 @@ from hanlp_parse import han_analyzer
 from sentence_structure_utils import base_structure
 from input_process_util import Processor
 from long_sentence_process import Long_sentence_processor
+import jieba
+
 #import pandas as pd
 
 import logging
@@ -32,8 +34,12 @@ class RB2(object):
     rule base 2 functionalities 
     an hanlp analyzer object for dependency parsing an other related operations 
     """
-    def __init__(self,kb_path,init_stop_words_path,keywords_path):
-        self.set_dict = read_sets(kb_path,'sets')
+    def __init__(self,kb_path,init_stop_words_path,keywords_path,set_path=None,custom_dict=None):
+        jieba.load_userdict(custom_dict)
+        if set_path is None:
+            self.set_dict = read_sets(kb_path,'sets')
+        else:
+            self.set_dict = read_sets(set_path)
         self.place_holder_dict = read_sets(kb_path,'place_holder')
         self.id_pattern_pairs = read_pattern(kb_path,'ask_pattern','intent_id','pattern')
         self.record_list = [convert2record_list(idpp,self.set_dict,self.place_holder_dict) for 
@@ -104,7 +110,7 @@ class RB2(object):
         return ans[:topn]
     
     def match(self,sentence,deep_match=False,match_intent=False,topn=5,check_long_sentence=True):
-        
+        sentence = sentence.lower()
         if check_long_sentence:
             processed_inputs = self.long_sentence_processor.check_amd_split(sentence)
             logging.info(processed_inputs)
@@ -137,11 +143,15 @@ class RB2(object):
     def evaluate_pattern(self,sentence,input_pattern,deep_match=False,match_intent=False):
         try:
             record = convert2record_list(['input_id',input_pattern,'NA','NA'],self.set_dict,self.place_holder_dict)
+            #sentence = sentence.lower()
             sentence = self.processor.check_and_remove_ini(sentence,self.analyzer,False)
-            res = self.base_structure(sentence,self.analyzer)
+            #res = self.base_structure(sentence,self.analyzer)
             #eles = self.filter_and_rank(res,self.find_levels)
-            eles2 = self.filter_and_rank(res,self.find_levels2)
-            ans = self.match_patterns(eles2,[record],self.keyword_dict,0.0,0.0,match_intent,None)
+            #eles2 = self.filter_and_rank(res,self.find_levels2)
+            ## for now, just use jeiba 
+            eles2 = list(jieba.cut(sentence))
+            eles2 = [e.lower().replace(" ","") for e in eles2]
+            ans = self.match_patterns(eles2,[record],self.keyword_dict,0.0,0.0,match_intent,None,multi=False)
         
         except Exception as e:
             #logging.warning('Problem with input')
