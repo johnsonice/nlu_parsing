@@ -18,10 +18,10 @@ import jieba
 import copy
 import jieba.posseg as pseg
 from collections import Counter
-import scipy.sparse as sp
+#import scipy.sparse as sp
 from sklearn.feature_extraction.text import CountVectorizer,TfidfTransformer
 from scipy.sparse import csr_matrix
-dir_dict = "../data/processed/my_dict.txt"
+dir_dict = "../../data/processed/my_dict.txt"
 jieba.load_userdict(dir_dict)
 
 #%%
