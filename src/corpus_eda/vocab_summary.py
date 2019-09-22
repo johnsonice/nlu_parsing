@@ -19,7 +19,7 @@ from itertools import combinations
 dir_dict = "../../data/processed/my_dict.txt"
 jieba.load_userdict(dir_dict)
 #%%
-key_tags = ['n','v','a','q','d','r','eng','m']
+key_tags = ['n','x','v','a','q','d','r','eng','m']
 
 def group_pos(pos):
     groups = {'n':['ns', 'n', 'nt', 'nr', 'nrt', 'nz'],
@@ -52,7 +52,7 @@ def single_key_summary(tagged_sentences,
     """
     res = {}
     for kt in key_tags:
-        kt_C = Counter([p[0] for li in corpus_pos for p in li if p[1]==kt ])
+        kt_C = Counter([p[0] for li in tagged_sentences for p in li if p[1]==kt ])
         df_C =  pd.DataFrame(kt_C.most_common(),columns=[kt,'count'])
         if isinstance(total_count,int):
             df_C['prob'] = df_C['count']/total_count 
