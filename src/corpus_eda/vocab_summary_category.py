@@ -34,8 +34,8 @@ if __name__ =="__main__":
     
     
     ## load and clean data 
-    corpus_path = "../../data/raw/corpus/shoulei_9_20.xlsx"
-    corpus_res_folder = '../../data/results/corpus'
+    corpus_path = "../../data/raw/corpus/xiaohezi.xlsx"
+    corpus_res_folder = '../../data/results/corpus_xiaohezi'
     #out_file_path = os.path.join(corpus_res_folder,'shoulei_test.xlsx')
     ids = pd.read_excel(corpus_path)['子类名称'].values.tolist()
     
