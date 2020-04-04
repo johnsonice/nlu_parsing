@@ -158,5 +158,12 @@ class Question_Classifier(object):
 #%%
 if __name__ == "__main__":
     v_path = '../../data/processed/verbs.txt'
-    QC = Question_Classifier(v_path)
+    q_path = '../../data/processed/verbs.txt'
+    a_path = '../../data/processed/verbs.txt'
+    QC = Question_Classifier(v_path,q_path,a_path)
+    
+    example_questions = ['哪笔交易？','你起床没起床？',
+                         '你计较没有？','说说今天股市涨不涨']
+    for q in example_questions:
+        print(QC.classify(q))
     
